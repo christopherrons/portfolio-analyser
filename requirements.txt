@@ -1,0 +1,4 @@
+numpy==1.23.3
+pandas==1.5.0
+python_dateutil==2.8.2
+yfinance==0.1.75
