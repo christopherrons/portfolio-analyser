@@ -41,17 +41,17 @@ class PortfolioAnalyser:
         portfolio_results: [PortfolioResult] = []
         for expected_return in np.linspace(1, 30, 500, endpoint=True):
             b: np.array = np.array([expected_return / (100 * 252), 1])
-            constraint_eq = {'type': 'eq',
-                             'fun': lambda x: np.dot(A, x) - b,
-                             'jac': lambda x: A}
-            bound = (0, None)
+            constraints: [{}] = [{'type': 'eq',
+                                  'fun': lambda x: np.dot(A, x) - b,
+                                  'jac': lambda x: A}]
+            bounds: [()] = [(0, None)] * len(self.symbols)
 
-            min_var = np.inf
+            min_var: float = np.inf
             best_result = None
             for simulation in range(0, 1000):
                 x0: np.array = np.random.random(len(self.symbols))
                 x0 /= sum(x0)
-                result = QuadraticSolver.solve(H, c, c0, x0, [constraint_eq], [bound])
+                result = QuadraticSolver.solve(H, c, c0, x0, constraints, bounds)
                 if result["fun"] < min_var:
                     best_result = result
                     min_var = result["fun"]

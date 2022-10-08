@@ -11,6 +11,7 @@ from historical_data import HistoricalData
 from model.portfolio_result import PortfolioResult
 
 sns.set()
+sns.color_palette()
 
 
 class PortfolioAnalysisReportBuilder:
