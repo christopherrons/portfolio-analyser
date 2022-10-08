@@ -33,6 +33,7 @@ class PortfolioAnalyser:
                                          optimization_portfolio_results)
 
     def optimization_portfolio_result(self) -> [PortfolioResult]:
+        print("Calculating Optimized portfolio results...", end=" ")
         H: np.array = self.historical_data.covariance_returns.to_numpy()
         A: np.array = np.array([self.historical_data.mean_returns.to_numpy(), np.ones(len(self.symbols))])
         c: np.array = np.zeros(len(self.symbols))
@@ -63,9 +64,11 @@ class PortfolioAnalyser:
             portfolio_results.append(
                 self.create_portfolio_result(Portfolio(symbol_to_positions))
             )
+        print("Done!")
         return portfolio_results
 
     def simulate_portfolio_result(self) -> [PortfolioResult]:
+        print("Calculating Simulated portfolio results...", end=" ")
         nr_of_simulations = 50000
         portfolio_results: [PortfolioResult] = []
         for simulation in range(0, nr_of_simulations):
@@ -81,6 +84,7 @@ class PortfolioAnalyser:
             portfolio_results.append(
                 self.create_portfolio_result(Portfolio(symbol_to_positions))
             )
+        print("Done!")
         return portfolio_results
 
     def create_portfolio_result(self, portfolio: Portfolio) -> PortfolioResult:

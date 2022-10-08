@@ -6,6 +6,7 @@ from yfinance import Tickers
 class HistoricalData:
 
     def __init__(self, symbols: [str], start_date: str, end_date: str):
+        print("Gathering Historical Data...")
         self.tickers: Tickers = yf.Tickers(symbols)
         self.historical_data: DataFrame = yf.download(symbols, start=start_date, end=end_date)
         self.closing_prices: DataFrame = self.historical_data["Close"]

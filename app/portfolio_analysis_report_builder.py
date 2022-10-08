@@ -23,6 +23,7 @@ class PortfolioAnalysisReportBuilder:
                      current_portfolio_result: PortfolioResult,
                      simulated_portfolio_results: [PortfolioResult],
                      optimization_portfolio_results: [PortfolioResult]):
+        print("Building report...")
         sim_max_return: PortfolioResult = max(simulated_portfolio_results, key=attrgetter('annualized_expected_returns'))
         sim_min_std: PortfolioResult = min(simulated_portfolio_results, key=attrgetter('annualized_standard_deviation'))
         sim_matching_std_highest_return: PortfolioResult = self.get_max_return_same_std(current_portfolio_result,
@@ -87,6 +88,8 @@ class PortfolioAnalysisReportBuilder:
         pp.savefig(self.add_portfolio_data(opt_matching_std_highest_return, 'Opt: Current Std Max Return Portfolio Data'),
                    bbox_inches='tight')
         pp.close()
+
+        print(f"Report saved: {report_output_directory}")
 
     def add_historical_data(self, pp: PdfPages):
         pp.savefig(self.add_mean_to_report(self.historical_data.mean_returns), bbox_inches='tight')
