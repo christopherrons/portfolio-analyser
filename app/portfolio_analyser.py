@@ -8,6 +8,7 @@ from model.portfolio_result import PortfolioResult
 from model.portfolio_result_item import PortfolioResultItem
 from model.position import Position
 from portfolio_analysis_report_builder import PortfolioAnalysisReportBuilder
+from quandratic_solver import QuadraticSolver
 from utils.utils import Utils
 
 
@@ -21,15 +22,48 @@ class PortfolioAnalyser:
         )
         symbol_to_position: {str, Position} = self.create_positions_from_csv(positions_file_path)
         self.current_portfolio: Portfolio = Portfolio(symbol_to_position)
+        self.report_builder: PortfolioAnalysisReportBuilder = PortfolioAnalysisReportBuilder(self.historical_data)
 
     def create_analysis_report(self, report_output_directory: str):
         current_portfolio_result: PortfolioResult = self.create_portfolio_result(self.current_portfolio)
         simulated_portfolio_results: [PortfolioResult] = self.simulate_portfolio_result()
-        optimization_portfolio_results: [PortfolioResult] = None  # FIXME: Add this method
+        optimization_portfolio_results: [PortfolioResult] = self.optimization_portfolio_result()
 
-        report_builder: PortfolioAnalysisReportBuilder = PortfolioAnalysisReportBuilder()
-        report_builder.build_report(report_output_directory, current_portfolio_result, simulated_portfolio_results,
-                                    optimization_portfolio_results, self.historical_data)
+        self.report_builder.build_report(report_output_directory, current_portfolio_result, simulated_portfolio_results,
+                                         optimization_portfolio_results)
+
+    def optimization_portfolio_result(self) -> [PortfolioResult]:
+        H: np.array = self.historical_data.covariance_returns.to_numpy()
+        A: np.array = np.array([self.historical_data.mean_returns.to_numpy(), np.ones(len(self.symbols))])
+        c: np.array = np.zeros(len(self.symbols))
+        c0: np.array = np.zeros(len(self.symbols))
+
+        portfolio_results: [PortfolioResult] = []
+        for expected_return in np.linspace(1, 30, 500, endpoint=True):
+            b: np.array = np.array([expected_return / (100 * 252), 1])
+            constraint_eq = {'type': 'eq',
+                             'fun': lambda x: np.dot(A, x) - b,
+                             'jac': lambda x: A}
+            bound = (0, None)
+
+            min_var = np.inf
+            best_result = None
+            for simulation in range(0, 1000):
+                x0: np.array = np.random.random(len(self.symbols))
+                x0 /= sum(x0)
+                result = QuadraticSolver.solve(H, c, c0, x0, [constraint_eq], [bound])
+                if result["fun"] < min_var:
+                    best_result = result
+                    min_var = result["fun"]
+
+            symbol_to_positions: {str, Position} = {}
+            for index, quantity in enumerate(best_result["x"]):
+                current_symbol: str = self.historical_data.mean_returns.index.to_numpy()[index]
+                symbol_to_positions[current_symbol] = Position(current_symbol, quantity, latest_price=100)
+            portfolio_results.append(
+                self.create_portfolio_result(Portfolio(symbol_to_positions))
+            )
+        return portfolio_results
 
     def simulate_portfolio_result(self) -> [PortfolioResult]:
         nr_of_simulations = 50000
@@ -41,7 +75,7 @@ class PortfolioAnalyser:
             symbol_to_positions: {str, Position} = {}
 
             for index, quantity in enumerate(quantities):
-                current_symbol = self.symbols[index]
+                current_symbol: str = self.symbols[index]
                 symbol_to_positions[current_symbol] = Position(current_symbol, quantity, latest_price=100)
 
             portfolio_results.append(
