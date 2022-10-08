@@ -135,7 +135,7 @@ class PortfolioAnalysisReportBuilder:
         df = df.reset_index(level=0)
         df = df.rename({'index': ''}, axis='columns')
         fig, axes = plt.subplots(1, figsize=(12, 4))
-        fig.suptitle("Portfolio Weights", fontsize=25)
+        fig.suptitle("Portfolio Weights [%]", fontsize=25)
         axes.axis('tight')
         axes.axis('off')
         axes.table(cellText=df.values, colLabels=df.columns, loc='center')
