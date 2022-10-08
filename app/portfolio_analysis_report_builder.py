@@ -83,7 +83,7 @@ class PortfolioAnalysisReportBuilder:
                    bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(opt_max_return, 'Opt: Max Return Portfolio Data'), bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(opt_min_std, 'Opt: Min Std Portfolio Data'), bbox_inches='tight')
-        pp.savefig(self.add_portfolio_data(opt_matching_std_highest_return, 'Sim: Current Std Max Return Portfolio Data'),
+        pp.savefig(self.add_portfolio_data(opt_matching_std_highest_return, 'Opt: Current Std Max Return Portfolio Data'),
                    bbox_inches='tight')
         pp.close()
 
