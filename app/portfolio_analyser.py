@@ -13,7 +13,7 @@ from utils.utils import Utils
 
 
 class PortfolioAnalyser:
-    def __init__(self, historical_years: int, positions_file_path: str):
+    def __init__(self, historical_years: int, positions_file_path: str, risk_free_return: float):
         self.symbols: [str] = self.get_symbols_from_csv(positions_file_path)
         self.historical_data: HistoricalData = HistoricalData(
             symbols=self.symbols,
@@ -22,7 +22,7 @@ class PortfolioAnalyser:
         )
         symbol_to_position: {str, Position} = self.create_positions_from_csv(positions_file_path)
         self.current_portfolio: Portfolio = Portfolio(symbol_to_position)
-        self.report_builder: PortfolioAnalysisReportBuilder = PortfolioAnalysisReportBuilder(self.historical_data)
+        self.report_builder: PortfolioAnalysisReportBuilder = PortfolioAnalysisReportBuilder(self.historical_data, risk_free_return)
 
     def create_analysis_report(self, report_output_directory: str):
         current_portfolio_result: PortfolioResult = self.create_portfolio_result(self.current_portfolio)

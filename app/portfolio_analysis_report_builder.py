@@ -16,8 +16,9 @@ sns.color_palette()
 
 class PortfolioAnalysisReportBuilder:
 
-    def __init__(self, historical_data: HistoricalData):
-        self.historical_data = historical_data
+    def __init__(self, historical_data: HistoricalData, risk_free_return: float):
+        self.historical_data: HistoricalData = historical_data
+        self.risk_free_return: float = risk_free_return
 
     def build_report(self, report_output_directory: str,
                      current_portfolio_result: PortfolioResult,
@@ -32,6 +33,7 @@ class PortfolioAnalysisReportBuilder:
         opt_min_std: PortfolioResult = min(optimization_portfolio_results, key=attrgetter('annualized_standard_deviation'))
         opt_matching_std_highest_return: PortfolioResult = self.get_max_return_same_std(current_portfolio_result,
                                                                                         optimization_portfolio_results)
+        opt_max_sharpe_ratio: PortfolioResult = self.get_max_sharpe_ratio(optimization_portfolio_results)
 
         pp = PdfPages(report_output_directory)
         self.add_historical_data(pp)
@@ -43,7 +45,8 @@ class PortfolioAnalysisReportBuilder:
                                                         sim_matching_std_highest_return,
                                                         opt_min_std,
                                                         opt_max_return,
-                                                        opt_matching_std_highest_return)
+                                                        opt_matching_std_highest_return,
+                                                        opt_max_sharpe_ratio)
                    , bbox_inches='tight')
         pp.savefig(self.add_portfolio_annualized_statistics(current_portfolio_result,
                                                             sim_min_std,
@@ -51,7 +54,8 @@ class PortfolioAnalysisReportBuilder:
                                                             sim_matching_std_highest_return,
                                                             opt_min_std,
                                                             opt_max_return,
-                                                            opt_matching_std_highest_return)
+                                                            opt_matching_std_highest_return,
+                                                            opt_max_sharpe_ratio)
                    , bbox_inches='tight')
         pp.savefig(self.add_portfolio_weight_barplot_portfolio(current_portfolio_result,
                                                                sim_min_std,
@@ -59,7 +63,8 @@ class PortfolioAnalysisReportBuilder:
                                                                sim_matching_std_highest_return,
                                                                opt_min_std,
                                                                opt_max_return,
-                                                               opt_matching_std_highest_return)
+                                                               opt_matching_std_highest_return,
+                                                               opt_max_sharpe_ratio)
                    , bbox_inches='tight')
         pp.savefig(
             self.add_portfolio_weight_barplot_stock(current_portfolio_result,
@@ -68,7 +73,8 @@ class PortfolioAnalysisReportBuilder:
                                                     sim_matching_std_highest_return,
                                                     opt_min_std,
                                                     opt_max_return,
-                                                    opt_matching_std_highest_return),
+                                                    opt_matching_std_highest_return,
+                                                    opt_max_sharpe_ratio),
             bbox_inches='tight')
         pp.savefig(self.add_portfolio_weight_table(current_portfolio_result,
                                                    sim_min_std,
@@ -76,7 +82,8 @@ class PortfolioAnalysisReportBuilder:
                                                    sim_matching_std_highest_return,
                                                    opt_min_std,
                                                    opt_max_return,
-                                                   opt_matching_std_highest_return),
+                                                   opt_matching_std_highest_return,
+                                                   opt_max_sharpe_ratio),
                    bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(current_portfolio_result, 'Current Portfolio Data'), bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(sim_max_return, 'Sim: Max Return Portfolio Data'), bbox_inches='tight')
@@ -86,6 +93,8 @@ class PortfolioAnalysisReportBuilder:
         pp.savefig(self.add_portfolio_data(opt_max_return, 'Opt: Max Return Portfolio Data'), bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(opt_min_std, 'Opt: Min Std Portfolio Data'), bbox_inches='tight')
         pp.savefig(self.add_portfolio_data(opt_matching_std_highest_return, 'Opt: Current Std Max Return Portfolio Data'),
+                   bbox_inches='tight')
+        pp.savefig(self.add_portfolio_data(opt_max_sharpe_ratio, 'Opt: Max Sharpe Ratio Portfolio Data'),
                    bbox_inches='tight')
         pp.close()
 
@@ -131,7 +140,8 @@ class PortfolioAnalysisReportBuilder:
                                    sim_matching_std_highest_return: PortfolioResult,
                                    opt_min_std: PortfolioResult,
                                    opt_max_return: PortfolioResult,
-                                   opt_matching_std_highest_return: PortfolioResult):
+                                   opt_matching_std_highest_return: PortfolioResult,
+                                   opt_max_sharpe_ratio: PortfolioResult):
         headers = current_portfolio_result.symbols_in_correct_order
         df = pd.DataFrame(columns=headers,
                           index=["Current", "Sim: Min Std", "Sim: Max Return", "Sim: Current Std Max Return", "Opt: Min Std",
@@ -143,6 +153,7 @@ class PortfolioAnalysisReportBuilder:
         df.loc["Opt: Min Std", :] = opt_min_std.get_result_dataframe().iloc[1]
         df.loc["Opt: Max Return", :] = opt_max_return.get_result_dataframe().iloc[1]
         df.loc["Opt: Current Std Max Return", :] = opt_matching_std_highest_return.get_result_dataframe().iloc[1]
+        df.loc["Opt: Max Sharpe Ratio", :] = opt_max_sharpe_ratio.get_result_dataframe().iloc[1]
         df = df.reset_index(level=0)
         df = df.rename({'index': ''}, axis='columns')
         fig, axes = plt.subplots(1, figsize=(12, 4))
@@ -158,7 +169,8 @@ class PortfolioAnalysisReportBuilder:
                                            sim_matching_std_highest_return: PortfolioResult,
                                            opt_min_std: PortfolioResult,
                                            opt_max_return: PortfolioResult,
-                                           opt_matching_std_highest_return: PortfolioResult):
+                                           opt_matching_std_highest_return: PortfolioResult,
+                                           opt_max_sharpe_ratio: PortfolioResult):
         headers = current_portfolio_result.symbols_in_correct_order
         df = pd.DataFrame(columns=headers,
                           index=["Current", "Sim: Min Std", "Sim: Max Return", "Sim: Current Std Max Return", "Opt: Min Std",
@@ -170,6 +182,7 @@ class PortfolioAnalysisReportBuilder:
         df.loc["Opt: Min Std", :] = opt_min_std.get_result_dataframe().iloc[1]
         df.loc["Opt: Max Return", :] = opt_max_return.get_result_dataframe().iloc[1]
         df.loc["Opt: Current Std Max Return", :] = opt_matching_std_highest_return.get_result_dataframe().iloc[1]
+        df.loc["Opt: Max Sharpe Ratio", :] = opt_max_sharpe_ratio.get_result_dataframe().iloc[1]
         fig, axes = plt.subplots(1, figsize=(12, 4))
         fig.suptitle('Portfolio Weight Bar Chart - Stocks', fontsize=16)
         df.T.plot.bar(ax=axes)
@@ -182,7 +195,8 @@ class PortfolioAnalysisReportBuilder:
                                                sim_matching_std_highest_return: PortfolioResult,
                                                opt_min_std: PortfolioResult,
                                                opt_max_return: PortfolioResult,
-                                               opt_matching_std_highest_return: PortfolioResult):
+                                               opt_matching_std_highest_return: PortfolioResult,
+                                               opt_max_sharpe_ratio: PortfolioResult):
         headers = current_portfolio_result.symbols_in_correct_order
         df = pd.DataFrame(columns=headers,
                           index=["Current", "Sim: Min Std", "Sim: Max Return", "Sim: Current Std Max Return", "Opt: Min Std",
@@ -194,6 +208,7 @@ class PortfolioAnalysisReportBuilder:
         df.loc["Opt: Min Std", :] = opt_min_std.get_result_dataframe().iloc[1]
         df.loc["Opt: Max Return", :] = opt_max_return.get_result_dataframe().iloc[1]
         df.loc["Opt: Current Std Max Return", :] = opt_matching_std_highest_return.get_result_dataframe().iloc[1]
+        df.loc["Opt: Max Sharpe Ratio", :] = opt_max_sharpe_ratio.get_result_dataframe().iloc[1]
         fig, axes = plt.subplots(1, figsize=(12, 4))
         fig.suptitle('Portfolio Weight Bar Chart - Portfolio', fontsize=16)
         df.plot.bar(ax=axes)
@@ -206,7 +221,8 @@ class PortfolioAnalysisReportBuilder:
                                             sim_matching_std_highest_return: PortfolioResult,
                                             opt_min_std: PortfolioResult,
                                             opt_max_return: PortfolioResult,
-                                            opt_matching_std_highest_return: PortfolioResult):
+                                            opt_matching_std_highest_return: PortfolioResult,
+                                            opt_max_sharpe_ratio: PortfolioResult):
         headers = ["Expected Return", "Correlation Adjusted Variance", "Standard Deviation"]
         df = pd.DataFrame(columns=headers,
                           index=["Current", "Sim: Min Std", "Sim: Max Return", "Sim: Current Std Max Return", "Opt: Min Std",
@@ -218,6 +234,7 @@ class PortfolioAnalysisReportBuilder:
         df.loc["Opt: Min Std", :] = opt_min_std.get_result_statistics_dataframe().iloc[0]
         df.loc["Opt: Max Return", :] = opt_max_return.get_result_statistics_dataframe().iloc[0]
         df.loc["Opt: Current Std Max Return", :] = opt_matching_std_highest_return.get_result_statistics_dataframe().iloc[0]
+        df.loc["Opt: Max Sharpe Ratio", :] = opt_max_sharpe_ratio.get_result_statistics_dataframe().iloc[0]
         df = df.T
         df = df.reset_index(level=0)
         df = df.rename({'index': ''}, axis='columns')
@@ -236,7 +253,8 @@ class PortfolioAnalysisReportBuilder:
                                         sim_matching_std_highest_return: PortfolioResult,
                                         opt_min_std: PortfolioResult,
                                         opt_max_return: PortfolioResult,
-                                        opt_matching_std_highest_return: PortfolioResult):
+                                        opt_matching_std_highest_return: PortfolioResult,
+                                        opt_max_sharpe_ratio: PortfolioResult):
         fig, axes = plt.subplots(1, figsize=(12, 4))
         fig.suptitle("Annualized Expected Return Vs Std", fontsize=16)
         axes.scatter(y=[r.annualized_expected_returns for r in simulated_portfolio_results],
@@ -262,6 +280,9 @@ class PortfolioAnalysisReportBuilder:
         axes.scatter(y=opt_matching_std_highest_return.annualized_expected_returns,
                      x=opt_matching_std_highest_return.annualized_standard_deviation, label="opt: max-return-current-std", c="aqua",
                      alpha=0.9, s=100)
+        axes.scatter(y=opt_max_sharpe_ratio.annualized_expected_returns,
+                     x=opt_max_sharpe_ratio.annualized_standard_deviation, label="opt: max-sharpe_ratio", c="olive",
+                     alpha=0.9, s=100)
         axes.scatter(y=[mean * 252 for mean in self.historical_data.mean_returns.to_numpy()],
                      x=[np.sqrt(self.historical_data.correlation_adjusted_covariance.iloc[idx, idx] * 252)
                         for idx in range(0, len(self.historical_data.mean_returns.to_numpy()))],
@@ -277,10 +298,20 @@ class PortfolioAnalysisReportBuilder:
     def get_max_return_same_std(self, this_portfolio: PortfolioResult,
                                 other_portfolio_results: [PortfolioResult]):
         min_max: PortfolioResult = other_portfolio_results[0]
-        max_return = -np.inf
+        max_return: float = -np.inf
         for result in other_portfolio_results:
-            std_diff = abs(result.annualized_standard_deviation - this_portfolio.annualized_standard_deviation)
+            std_diff: float = abs(result.annualized_standard_deviation - this_portfolio.annualized_standard_deviation)
             if std_diff < 0.01 and result.annualized_expected_returns > max_return:
                 min_max = result
                 max_return = result.annualized_expected_returns
         return min_max
+
+    def get_max_sharpe_ratio(self, portfolio_results: [PortfolioResult]):
+        max_ratio: PortfolioResult = portfolio_results[0]
+        beat_sharpe_ratio: float = -np.inf
+        for result in portfolio_results:
+            sharpe_ratio: float = (result.annualized_expected_returns - self.risk_free_return) / result.annualized_standard_deviation
+            if sharpe_ratio > beat_sharpe_ratio:
+                max_ratio = result
+                beat_sharpe_ratio = sharpe_ratio
+        return max_ratio
