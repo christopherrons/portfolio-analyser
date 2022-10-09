@@ -34,31 +34,26 @@ class PortfolioAnalyser:
 
     def optimization_portfolio_result(self) -> [PortfolioResult]:
         print("Calculating Optimized portfolio results...", end=" ")
-        H: np.array = self.historical_data.covariance_returns.to_numpy()
-        A: np.array = np.array([self.historical_data.mean_returns.to_numpy(), np.ones(len(self.symbols))])
+        mean_returns: np.array = self.historical_data.mean_returns.to_numpy()
+        max_mean_returns: float = max(mean_returns)
+        min_mean_returns: float = min(mean_returns)
+        H: np.array = self.historical_data.correlation_adjusted_covariance.to_numpy()
+        A: np.array = np.array([mean_returns, np.ones(len(self.symbols))])
         c: np.array = np.zeros(len(self.symbols))
         c0: np.array = np.zeros(len(self.symbols))
+        x0: np.array = np.array([1 / len(self.symbols)] * len(self.symbols))
 
         portfolio_results: [PortfolioResult] = []
-        for expected_return in np.linspace(1, 30, 500, endpoint=True):
-            b: np.array = np.array([expected_return / (100 * 252), 1])
+        for expected_return in np.linspace(min_mean_returns, max_mean_returns, 500, endpoint=True):
+            b: np.array = np.array([expected_return, 1])
             constraints: [{}] = [{'type': 'eq',
                                   'fun': lambda x: np.dot(A, x) - b,
                                   'jac': lambda x: A}]
             bounds: [()] = [(0, None)] * len(self.symbols)
-
-            min_var: float = np.inf
-            best_result = None
-            for simulation in range(0, 1000):
-                x0: np.array = np.random.random(len(self.symbols))
-                x0 /= sum(x0)
-                result = QuadraticSolver.solve(H, c, c0, x0, constraints, bounds)
-                if result["fun"] < min_var:
-                    best_result = result
-                    min_var = result["fun"]
+            result = QuadraticSolver.solve(H, c, c0, x0, constraints, bounds)
 
             symbol_to_positions: {str, Position} = {}
-            for index, quantity in enumerate(best_result["x"]):
+            for index, quantity in enumerate(result["x"]):
                 current_symbol: str = self.historical_data.mean_returns.index.to_numpy()[index]
                 symbol_to_positions[current_symbol] = Position(current_symbol, quantity, latest_price=100)
             portfolio_results.append(
@@ -100,7 +95,7 @@ class PortfolioAnalyser:
 
         return PortfolioResult(symbol_to_portfolio_result_item,
                                self.historical_data.mean_returns,
-                               self.historical_data.covariance_returns,
+                               self.historical_data.correlation_adjusted_covariance,
                                portfolio.value)
 
     def create_positions_from_csv(self, positions_file_path: str) -> {str, Position}:

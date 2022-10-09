@@ -94,17 +94,24 @@ class PortfolioAnalysisReportBuilder:
     def add_historical_data(self, pp: PdfPages):
         pp.savefig(self.add_mean_to_report(self.historical_data.mean_returns), bbox_inches='tight')
         pp.savefig(self.add_covariance_to_report(self.historical_data.covariance_returns), bbox_inches='tight')
+        pp.savefig(self.add_correlation_to_report(self.historical_data.correlation_returns), bbox_inches='tight')
 
     def add_mean_to_report(self, mean_returns: DataFrame):
         fig, axes = plt.subplots(1, figsize=(12, 4))
-        fig.suptitle('Annualized Return Means [%]', fontsize=16)
+        fig.suptitle('Annualized Return Means', fontsize=16)
         sns.barplot(ax=axes, x=mean_returns.index, y=mean_returns.values * 252)
         return fig
 
     def add_covariance_to_report(self, covariance: DataFrame):
         fig, axes = plt.subplots(1, figsize=(12, 4))
-        fig.suptitle('Annualized Return Covariance [%]', fontsize=16)
+        fig.suptitle('Annualized Return Covariance', fontsize=16)
         sns.heatmap(ax=axes, data=covariance * 252, annot=True)
+        return fig
+
+    def add_correlation_to_report(self, correlation: DataFrame):
+        fig, axes = plt.subplots(1, figsize=(12, 4))
+        fig.suptitle('Return Correlation', fontsize=16)
+        sns.heatmap(ax=axes, data=correlation, annot=True)
         return fig
 
     def add_portfolio_data(self, current_portfolio_result: PortfolioResult, title: str):
@@ -133,9 +140,9 @@ class PortfolioAnalysisReportBuilder:
         df.loc["Sim: Min Std", :] = sim_min_std.get_result_dataframe().iloc[1]
         df.loc["Sim: Max Return", :] = sim_max_return.get_result_dataframe().iloc[1]
         df.loc["Sim: Current Std Max Return", :] = sim_matching_std_highest_return.get_result_dataframe().iloc[1]
-        df.loc["Opt: Min Std", :] = sim_min_std.get_result_dataframe().iloc[1]
-        df.loc["Opt: Max Return", :] = sim_max_return.get_result_dataframe().iloc[1]
-        df.loc["Opt: Current Std Max Return", :] = sim_matching_std_highest_return.get_result_dataframe().iloc[1]
+        df.loc["Opt: Min Std", :] = opt_min_std.get_result_dataframe().iloc[1]
+        df.loc["Opt: Max Return", :] = opt_max_return.get_result_dataframe().iloc[1]
+        df.loc["Opt: Current Std Max Return", :] = opt_matching_std_highest_return.get_result_dataframe().iloc[1]
         df = df.reset_index(level=0)
         df = df.rename({'index': ''}, axis='columns')
         fig, axes = plt.subplots(1, figsize=(12, 4))
@@ -200,7 +207,7 @@ class PortfolioAnalysisReportBuilder:
                                             opt_min_std: PortfolioResult,
                                             opt_max_return: PortfolioResult,
                                             opt_matching_std_highest_return: PortfolioResult):
-        headers = ["Expected Return %", "Variance", "Standard Deviation"]
+        headers = ["Expected Return", "Correlation Adjusted Variance", "Standard Deviation"]
         df = pd.DataFrame(columns=headers,
                           index=["Current", "Sim: Min Std", "Sim: Max Return", "Sim: Current Std Max Return", "Opt: Min Std",
                                  "Opt: Max Return", "Opt: Current Std Max Return"])
@@ -256,7 +263,7 @@ class PortfolioAnalysisReportBuilder:
                      x=opt_matching_std_highest_return.annualized_standard_deviation, label="opt: max-return-current-std", c="aqua",
                      alpha=0.9, s=100)
         axes.scatter(y=[mean * 252 for mean in self.historical_data.mean_returns.to_numpy()],
-                     x=[np.sqrt(self.historical_data.covariance_returns.iloc[idx, idx] * 252)
+                     x=[np.sqrt(self.historical_data.correlation_adjusted_covariance.iloc[idx, idx] * 252)
                         for idx in range(0, len(self.historical_data.mean_returns.to_numpy()))],
                      label="stocks", c="yellow", alpha=0.9,
                      s=50)
@@ -270,10 +277,10 @@ class PortfolioAnalysisReportBuilder:
     def get_max_return_same_std(self, this_portfolio: PortfolioResult,
                                 other_portfolio_results: [PortfolioResult]):
         min_max: PortfolioResult = other_portfolio_results[0]
-        max_return = -100
+        max_return = -np.inf
         for result in other_portfolio_results:
             std_diff = abs(result.annualized_standard_deviation - this_portfolio.annualized_standard_deviation)
-            if std_diff < 0.0001 and result.annualized_expected_returns > max_return:
+            if std_diff < 0.01 and result.annualized_expected_returns > max_return:
                 min_max = result
                 max_return = result.annualized_expected_returns
         return min_max

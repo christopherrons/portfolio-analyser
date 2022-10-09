@@ -10,9 +10,11 @@ class HistoricalData:
         self.tickers: Tickers = yf.Tickers(symbols)
         self.historical_data: DataFrame = yf.download(symbols, start=start_date, end=end_date)
         self.closing_prices: DataFrame = self.historical_data["Close"]
-        self.returns: DataFrame = self.calculate_returns()
+        self.returns: DataFrame = self.calculate_returns() * 100
         self.mean_returns: DataFrame = self.returns.mean()
         self.covariance_returns: DataFrame = self.returns.cov()
+        self.correlation_returns: DataFrame = self.returns.corr()
+        self.correlation_adjusted_covariance: DataFrame = self.returns.cov() * self.returns.corr()
 
     def calculate_returns(self) -> DataFrame:
         dividends_adjusted_closing_price: DataFrame = self.closing_prices.copy()
